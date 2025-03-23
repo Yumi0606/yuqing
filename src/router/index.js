@@ -1,74 +1,63 @@
-
-
 import { createRouter, createWebHistory } from 'vue-router';
-import TodoList from '../components/TodoList.vue';
-import Main from '../components/Main.vue';
-import Analysis from '../components/Analysis.vue';
-import View from '../components/View.vue';
-import Management from '../components/Management.vue';
-import Knowledge from '../components/Knowledge.vue';
-// import HW from '../components/HelloWorld.vue'
+
+// 路由懒加载
+const Home = () => import('../views/Home.vue');
+const MainLayout = () => import('../layouts/MainLayout.vue');
+const Analysis = () => import('../views/Analysis.vue');
+const View = () => import('../views/View.vue');
+const Management = () => import('../views/Management.vue');
+const Knowledge = () => import('../views/Knowledge.vue');
 
 const routes = [
-    {
-        path: '/', // 定义根路径
-        name: 'TodoList',
-        component: TodoList
-    },
-    {
-        path: '/login', // 定义 /login 路径
-        name: 'login', // 为该路由路径设置一个名称，方便在代码中通过名称引用
-        // component: Login // 注释掉的代码，原本可能用于指定 /login 路径对应的组件
-        // component: () => import('@/components/Login') // 懒加载代码，表示按需加载 Login 组件
-        component: () => import('@/components/login.vue') // 懒加载 Login 组件
-    },
-    // {
-    //     path: '/dashboard',  // 改为更具描述性的路径
-    //     name: 'dashboard',   // 改为更具描述性的名称
-    //     component: () => import("../components/main.vue"),
-    //     children: [
-    //         {
-    //             path: "home",
-    //             component: () => import("../components/home/index.vue"),
-    //             name: 'home'
-    //         },
-    //         {
-    //             path: "test",
-    //             component: () => import("../components/test.vue"),
-    //             name: 'test'
-    //         }
-    //     ]
-    // },
-    {
-        path: '/analysis',
+  {
+    path: '/',
+    name: 'Home',
+    component: Home
+  },
+  {
+    path: '/dashboard',
+    component: MainLayout,
+    children: [
+      {
+        path: 'analysis',
         name: 'Analysis',
-        component: Analysis,
-    },
-    {
-        path: '/view',
+        component: Analysis
+      },
+      {
+        path: 'view',
         name: 'View',
-        component: View,
-    },
-    {
-        path: '/management',
+        component: View
+      },
+      {
+        path: 'management',
         name: 'Management',
-        component: Management,
-    },
-    {
-        path: '/knowledge',
+        component: Management
+      },
+      {
+        path: 'knowledge',
         name: 'Knowledge',
-        component: Knowledge,
-    },
-    {
-        path: '/main',
-        name: 'Main',
-        component: Main,
-    },
+        component: Knowledge
+      },
+      {
+        path: '',
+        redirect: '/dashboard/analysis'
+      }
+    ]
+  },
+  // 重定向没有匹配到的路由到首页
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
+  }
 ];
 
 const router = createRouter({
-    history: createWebHistory(process.env.BASE_URL), // 使用 createWebHistory
-    routes
+  history: createWebHistory(),
+  routes,
+  scrollBehavior() {
+    // 始终滚动到顶部
+    return { top: 0 }
+  },
 });
 
 export default router;

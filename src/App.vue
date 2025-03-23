@@ -1,6 +1,10 @@
 <template>
   <div id="app">
-    <router-view></router-view>
+    <router-view v-slot="{ Component }">
+      <transition name="fade" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </router-view>
   </div>
 </template>
 
@@ -23,15 +27,12 @@ export default {
 </script>
 
 <!--style lang 是vue特有属性-->
-<style lang="scss">
-@import url('./assets/css/reset.css');
-
+<style>
+/* 全局样式已在main.css中定义 */
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  //margin-top: 60px;
+  min-height: 100vh;
 }
 </style>
