@@ -9,24 +9,11 @@
 </template>
 
 <script>
-//@是一个别名路径，@通常被配置为指向项目的src目录（或者是一个特定的目录，具体取决于项目的配置）
-import HelloWorld from './components/HelloWorld.vue'
-import Login from "./components/login.vue";
-import main from "@/components/main.vue";
-import TodoList from './components/TodoList.vue';
-
 export default {
-  name: 'App',
-  components: {
-    HelloWorld,
-    Login,
-    main,
-    TodoList
-  }
+  name: 'App'
 }
 </script>
 
-<!--style lang 是vue特有属性-->
 <style>
 /* 全局样式已在main.css中定义 */
 #app {
