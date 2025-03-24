@@ -9,7 +9,11 @@ export default createStore({
         currentKeywordPlan: null,
         keywordPlans: [],  // 初始化空数组
         loading: false,
-        notifications: []
+        notifications: [],
+        
+        // 方案表单相关状态
+        showPlanForm: false,
+        planFormMode: 'create', // 'create' 或 'edit'
     },
     mutations: {
         toggleSidebar(state) {
@@ -47,6 +51,12 @@ export default createStore({
         },
         removeNotification(state, id) {
             state.notifications = state.notifications.filter(n => n.id !== id);
+        },
+        setShowPlanForm(state, show) {
+            state.showPlanForm = show;
+        },
+        setPlanFormMode(state, mode) {
+            state.planFormMode = mode;
         }
     },
     actions: {
@@ -313,6 +323,54 @@ export default createStore({
                 });
                 console.error(error);
                 return null;
+            } finally {
+                commit('setLoading', false);
+            }
+        },
+
+        async savePlan({ commit, dispatch }, planData) {
+            commit('setLoading', true);
+            try {
+                if (planData.keyid) {
+                    // 更新现有方案
+                    const response = await api.updatePlanInfo(planData.keyid, planData);
+                    if (response.data && response.data.code === 200) {
+                        commit('updateKeywordPlan', { 
+                            id: planData.keyid, 
+                            data: planData 
+                        });
+                        commit('addNotification', {
+                            type: 'success',
+                            title: '更新成功',
+                            message: '方案已成功更新'
+                        });
+                        return true;
+                    }
+                } else {
+                    // 创建新方案
+                    // 模拟创建新方案的API调用
+                    const newPlan = {
+                        ...planData,
+                        keyid: Date.now(), // 使用时间戳作为临时ID
+                        createDate: new Date().toISOString().split('T')[0]
+                    };
+                    commit('addKeywordPlan', newPlan);
+                    commit('addNotification', {
+                        type: 'success',
+                        title: '创建成功',
+                        message: '新方案已创建'
+                    });
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                commit('addNotification', {
+                    type: 'error',
+                    title: '操作失败',
+                    message: planData.keyid ? '无法更新方案' : '无法创建方案'
+                });
+                console.error(error);
+                return false;
             } finally {
                 commit('setLoading', false);
             }

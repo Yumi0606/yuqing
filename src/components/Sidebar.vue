@@ -34,7 +34,11 @@
       </div>
       <div class="plan-list" v-else-if="filteredPlans.length">
         <transition-group name="plan-list" tag="ul">
-          <li v-for="plan in filteredPlans" :key="plan.keyid" class="plan-item">
+          <li v-for="plan in filteredPlans" 
+              :key="plan.keyid" 
+              class="plan-item"
+              :class="{'active': isActivePlan(plan)}"
+              @click="selectPlan(plan)">
             <div class="plan-icon">
               <i class="fas fa-file-alt"></i>
             </div>
@@ -43,15 +47,15 @@
               <div 
                 class="plan-status" 
                 :class="{ 'active': plan.isEnabled }" 
-                @click="togglePlanStatus(plan)"
+                @click.stop="togglePlanStatus(plan)"
                 :title="plan.isEnabled ? '已启用' : '已禁用'"
               >
                 <i class="fas" :class="plan.isEnabled ? 'fa-check-circle' : 'fa-times-circle'"></i>
               </div>
-              <button class="btn-edit" @click="editPlan(plan)" title="编辑方案">
+              <button class="btn-edit" @click.stop="editPlan(plan)" title="编辑方案">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="btn-delete" @click="deletePlan(plan)" title="删除方案">
+              <button class="btn-delete" @click.stop="deletePlan(plan)" title="删除方案">
                 <i class="fas fa-trash-alt"></i>
               </button>
             </div>
@@ -69,18 +73,20 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 
 export default {
   name: 'Sidebar',
   setup() {
     const store = useStore();
     const router = useRouter();
+    const route = useRoute();
     const searchKeyword = ref('');
     const loading = computed(() => store.state.loading);
 
     const sidebarCollapsed = computed(() => store.state.sidebarCollapsed);
     const allKeywordPlans = computed(() => store.state.keywordPlans);
+    const currentPlan = computed(() => store.state.currentKeywordPlan);
     
     const filteredPlans = computed(() => {
       const plans = store.state.keywordPlans || [];
@@ -105,6 +111,10 @@ export default {
 
     const createNewPlan = () => {
       router.push('/dashboard/management');
+      // 触发Vuex action打开创建方案表单
+      store.commit('setShowPlanForm', true);
+      store.commit('setPlanFormMode', 'create');
+      store.commit('setCurrentKeywordPlan', null);
     };
 
     const togglePlanStatus = (plan) => {
@@ -112,14 +122,33 @@ export default {
     };
 
     const editPlan = (plan) => {
+      // 设置当前方案，并跳转到方案管理页
       store.commit('setCurrentKeywordPlan', plan);
       router.push('/dashboard/management');
+      
+      // 打开编辑表单
+      store.commit('setShowPlanForm', true);
+      store.commit('setPlanFormMode', 'edit');
     };
 
     const deletePlan = (plan) => {
       if (confirm(`确定要删除"${plan.keyword}"方案吗？`)) {
         store.commit('removeKeywordPlan', plan.keyid);
       }
+    };
+    
+    const selectPlan = (plan) => {
+      // 设置当前选中的方案
+      store.dispatch('setCurrentPlan', plan.keyid);
+      
+      // 如果当前不在dashboard下的任何页面，则自动跳转到view页
+      if (!route.path.startsWith('/dashboard/')) {
+        router.push('/dashboard/view');
+      }
+    };
+    
+    const isActivePlan = (plan) => {
+      return currentPlan.value && plan.keyid === currentPlan.value.keyid;
     };
 
     return {
@@ -132,7 +161,9 @@ export default {
       createNewPlan,
       togglePlanStatus,
       editPlan,
-      deletePlan
+      deletePlan,
+      selectPlan,
+      isActivePlan
     };
   }
 };
@@ -140,66 +171,52 @@ export default {
 
 <style scoped>
 .sidebar {
+  width: 280px;
+  height: 100vh;
+  background: linear-gradient(to bottom, #3a86ff, #5e60ce);
+  color: white;
   position: fixed;
   left: 0;
   top: 0;
-  bottom: 0;
-  width: var(--sidebar-width);
-  background: linear-gradient(180deg, #1a2980 0%, #26d0ce 100%);
-  color: white;
-  z-index: 1000;
+  z-index: 100;
+  transition: all 0.3s;
   display: flex;
   flex-direction: column;
-  transition: all var(--transition-speed);
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
 }
 
 .sidebar.collapsed {
-  width: var(--sidebar-collapsed-width);
+  width: 0;
+  overflow: hidden;
 }
 
 .sidebar-header {
-  height: var(--header-height);
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
 }
 
 .logo-container {
   display: flex;
   align-items: center;
-  width: 100%;
-  overflow: hidden;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .logo-icon {
   font-size: 24px;
-  margin-right: 15px;
-  min-width: 24px;
-}
-
-.logo-text {
-  font-size: 18px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: opacity var(--transition-speed);
-}
-
-.sidebar.collapsed .logo-text {
-  opacity: 0;
-  width: 0;
+  margin-right: 10px;
+  color: white;
 }
 
 .sidebar-search {
-  padding: 20px;
+  padding: 0 20px;
+  margin-bottom: 20px;
 }
 
 .search-container {
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 50px;
-  padding: 8px 15px;
+  border-radius: 8px;
+  padding: 10px 15px;
   display: flex;
   align-items: center;
   transition: all 0.3s;
@@ -225,59 +242,54 @@ export default {
 }
 
 .search-container input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .clear-search {
   cursor: pointer;
-  margin-left: 10px;
+  margin-left: 5px !important;
   margin-right: 0 !important;
+  opacity: 0.6;
+  transition: opacity 0.2s;
 }
 
-.sidebar.collapsed .sidebar-search {
-  display: none;
+.clear-search:hover {
+  opacity: 1;
 }
 
 .sidebar-action {
-  padding: 0 20px 20px;
+  padding: 0 20px 20px 20px; /* 与列表左对齐 */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .btn-create {
-  background: rgba(255, 255, 255, 0.15);
-  border: none;
-  color: white;
   width: 100%;
-  padding: 12px;
-  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 8px;
+  padding: 12px 15px;
+  font-size: 14px;
   font-weight: 500;
-  transition: all 0.3s;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .btn-create:hover {
   background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
 }
 
 .btn-create i {
-  margin-right: 10px;
-  font-size: 14px;
-}
-
-.sidebar.collapsed .btn-create span {
-  display: none;
-}
-
-.sidebar.collapsed .sidebar-action {
-  padding: 10px;
+  margin-right: 8px;
 }
 
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
-  padding: 0 10px 20px;
+  padding: 20px 0; /* 移除水平内边距 */
 }
 
 .plan-list {
@@ -287,23 +299,33 @@ export default {
 }
 
 .plan-item {
-  background: rgba(255, 255, 255, 0.07);
-  border-radius: 8px;
-  margin-bottom: 10px;
-  padding: 12px 15px;
   display: flex;
   align-items: center;
-  transition: all 0.3s;
+  padding: 12px 20px;
+  border-radius: 0;
+  margin: 0;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
 }
 
 .plan-item:hover {
-  background: rgba(255, 255, 255, 0.12);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.plan-item.active {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .plan-icon {
-  margin-right: 15px;
-  color: rgba(255, 255, 255, 0.8);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  margin-right: 12px;
 }
 
 .plan-name {
@@ -317,6 +339,12 @@ export default {
 .plan-actions {
   display: flex;
   align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.plan-item:hover .plan-actions {
+  opacity: 1;
 }
 
 .plan-status {
@@ -325,53 +353,37 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 10px;
   cursor: pointer;
-  transition: all 0.3s;
-}
-
-.plan-status.active {
-  color: var(--success-color);
-}
-
-.plan-status:not(.active) {
+  margin-right: 5px;
   color: rgba(255, 255, 255, 0.5);
 }
 
+.plan-status.active {
+  color: #06d6a0;
+}
+
 .btn-edit, .btn-delete {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.7);
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 5px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-edit:hover {
+  background: transparent;
+  border: none;
   color: white;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 5px;
+  border-radius: 4px;
+  transition: background 0.2s;
 }
 
-.btn-delete:hover {
-  color: var(--danger-color);
+.btn-edit:hover, .btn-delete:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.sidebar.collapsed .plan-name,
-.sidebar.collapsed .plan-actions {
-  display: none;
-}
-
-.sidebar.collapsed .plan-item {
-  justify-content: center;
-  padding: 15px 0;
-}
-
-.sidebar.collapsed .plan-icon {
-  margin-right: 0;
+.btn-delete {
+  color: #ff8fa3;
 }
 
 .no-plans-message {
@@ -379,43 +391,25 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 150px;
+  padding: 40px 20px;
   color: rgba(255, 255, 255, 0.5);
   text-align: center;
-  padding: 0 20px;
 }
 
 .no-plans-message i {
-  font-size: 32px;
+  font-size: 30px;
   margin-bottom: 15px;
 }
 
-/* 动画 */
-.plan-list-enter-active,
-.plan-list-leave-active {
-  transition: all 0.3s;
-}
-
-.plan-list-enter-from,
+.plan-list-enter-from, 
 .plan-list-leave-to {
   opacity: 0;
   transform: translateX(-20px);
 }
 
-@media (max-width: 991px) {
-  .sidebar {
-    transform: translateX(-100%);
-    box-shadow: none;
-  }
-
-  .sidebar.collapsed {
-    transform: translateX(-100%);
-  }
-
-  .sidebar:not(.collapsed) {
-    transform: translateX(0);
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-  }
+.plan-list-enter-active, 
+.plan-list-leave-active {
+  transition: all 0.3s ease;
 }
 
 .loading-container {
@@ -439,5 +433,21 @@ export default {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 991px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+
+  .sidebar:not(.collapsed) {
+    transform: translateX(0);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  }
 }
 </style> 

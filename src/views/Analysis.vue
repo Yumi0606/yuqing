@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import { computed, reactive, ref, onMounted } from 'vue';
+import { computed, reactive, ref, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import DataOverview from '@/components/charts/DataOverview.vue';
 import PlatformChart from '@/components/charts/PlatformChart.vue';
@@ -110,6 +110,14 @@ export default {
       { bg: 'rgba(255, 190, 11, 0.1)', text: '#ffbe0b' },
       { bg: 'rgba(131, 56, 236, 0.1)', text: '#8338ec' }
     ];
+    
+    // 获取当前选中的方案
+    const currentPlan = computed(() => store.state.currentKeywordPlan);
+    
+    // 监听当前方案变化
+    watch(currentPlan, () => {
+      fetchAnalysisData();
+    });
     
     // 获取分析数据
     const fetchAnalysisData = async () => {

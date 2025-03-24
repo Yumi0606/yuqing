@@ -133,7 +133,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 
 export default {
@@ -142,7 +142,12 @@ export default {
     const store = useStore();
     const loading = ref(false);
     const dataList = ref([]);
+    const totalItems = ref(0);
     
+    // 获取当前选中的方案
+    const currentPlan = computed(() => store.state.currentKeywordPlan);
+    
+    // 过滤条件
     const filters = reactive({
       sentiment: '',
       platform: '',
@@ -159,9 +164,9 @@ export default {
     
     const platforms = ['微博', '微信', '新闻网站', '论坛', '抖音'];
     
+    // 分页
     const currentPage = ref(1);
     const itemsPerPage = 10;
-    const totalItems = ref(0);
     
     const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
     
@@ -177,6 +182,7 @@ export default {
       return pageArray;
     });
     
+    // 统计数据
     const statistics = ref([
       { label: '总数据量', value: 0, type: 'total', icon: 'fas fa-database' },
       { label: '今日新增', value: 0, type: 'new', icon: 'fas fa-plus-circle' },
@@ -184,35 +190,35 @@ export default {
       { label: '消极信息', value: 0, type: 'negative', icon: 'fas fa-frown' }
     ]);
     
-    // 从API获取数据
+    // 监听当前选中方案的变化，重新获取数据
+    watch(currentPlan, () => {
+      if (currentPlan.value) {
+        fetchData();
+      }
+    });
+    
+    // 获取舆情数据
     const fetchData = async () => {
+      if (!currentPlan.value) return;
+      
       loading.value = true;
       try {
-        // 使用当前选中的方案ID
-        const currentPlan = store.state.currentKeywordPlan;
-        if (!currentPlan) return;
-        
-        // 获取方案详情
-        const response = await store.dispatch('fetchPlanDetail', currentPlan.keyid);
-        if (response) {
-          // 更新统计数据
-          statistics.value[0].value = response.overview.infos;
-          statistics.value[2].value = response.overview.positive;
-          statistics.value[3].value = response.overview.negative;
+        // 如果有过滤条件，使用过滤API
+        if (hasFilters()) {
+          const response = await store.dispatch('filterSentimentData', {
+            id: currentPlan.value.keyid,
+            filters: filters
+          });
           
-          // 设置热门文章列表
-          dataList.value = response.hotArticles.map((article, index) => ({
-            id: 10000 + index,
-            title: article.title,
-            source: article.source,
-            sentiment: getSentimentMapping(article.sentiment),
-            publishTime: article.publishTime,
-            heat: article.heat,
-            content: article.title,
-            url: article.url
-          }));
-          
-          totalItems.value = dataList.value.length;
+          if (response) {
+            updateData(response);
+          }
+        } else {
+          // 否则获取全部数据
+          const response = await store.dispatch('fetchSentimentData', currentPlan.value.keyid);
+          if (response) {
+            updateData(response);
+          }
         }
       } catch (error) {
         console.error('获取数据失败:', error);
@@ -221,18 +227,37 @@ export default {
       }
     };
     
-    // 情感类型映射
-    const getSentimentMapping = (sentiment) => {
-      const map = {
-        '积极': 'positive',
-        '消极': 'negative',
-        '中性': 'neutral'
-      };
-      return map[sentiment] || 'neutral';
+    // 判断是否有过滤条件
+    const hasFilters = () => {
+      return filters.sentiment || 
+             filters.platform || 
+             (filters.startDate && filters.endDate);
+    };
+    
+    // 更新数据和统计信息
+    const updateData = (data) => {
+      if (data && data.articles) {
+        dataList.value = data.articles;
+        totalItems.value = data.articles.length;
+        
+        // 更新统计信息
+        if (data.overview) {
+          statistics.value[0].value = data.overview.total || 0;
+          statistics.value[1].value = data.overview.newToday || 0;
+          statistics.value[2].value = data.overview.positive || 0;
+          statistics.value[3].value = data.overview.negative || 0;
+        }
+      } else {
+        dataList.value = [];
+        totalItems.value = 0;
+      }
     };
     
     onMounted(() => {
-      fetchData();
+      // 页面加载时，如果有当前方案则获取数据
+      if (currentPlan.value) {
+        fetchData();
+      }
     });
     
     const getSentimentLabel = (sentiment) => {
@@ -268,6 +293,19 @@ export default {
       fetchData();
     };
     
+    const applyFilters = () => {
+      currentPage.value = 1; // 重置到第一页
+      fetchData();
+    };
+    
+    const resetFilters = () => {
+      filters.sentiment = '';
+      filters.platform = '';
+      filters.startDate = '';
+      filters.endDate = '';
+      applyFilters();
+    };
+    
     return {
       filters,
       sentimentTypes,
@@ -282,7 +320,9 @@ export default {
       getHeatColor,
       viewDetail,
       analyzeItem,
-      refreshData
+      refreshData,
+      applyFilters,
+      resetFilters
     };
   }
 };
