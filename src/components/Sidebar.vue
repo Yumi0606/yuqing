@@ -78,9 +78,10 @@ export default {
     const allKeywordPlans = computed(() => store.state.keywordPlans);
     
     const filteredPlans = computed(() => {
-      if (!searchKeyword.value) return allKeywordPlans.value;
+      const plans = store.state.keywordPlans || [];
+      if (!searchKeyword.value) return plans;
       const keyword = searchKeyword.value.toLowerCase();
-      return allKeywordPlans.value.filter(plan => 
+      return plans.filter(plan => 
         plan.keyword.toLowerCase().includes(keyword)
       );
     });
