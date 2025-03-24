@@ -37,6 +37,7 @@
           <li v-for="plan in filteredPlans" 
               :key="plan.keyid" 
               class="plan-item"
+              :data-keyid="plan.keyid"
               :class="{'active': isActivePlan(plan)}"
               @click="selectPlan(plan)">
             <div class="plan-icon">
@@ -138,10 +139,20 @@ export default {
     };
     
     const selectPlan = (plan) => {
+      // 添加点击反馈效果
+      const element = document.querySelector(`.plan-item[data-keyid="${plan.keyid}"]`);
+      if (element) {
+        element.classList.add('click-effect');
+        setTimeout(() => {
+          element.classList.remove('click-effect');
+        }, 300);
+      }
+      
       // 设置当前选中的方案
       store.dispatch('setCurrentPlan', plan.keyid);
       
-      // 如果当前不在dashboard下的任何页面，则自动跳转到view页
+      // 如果当前不在dashboard路径下，则跳转到view页面
+      // 否则保持当前页面，只更新方案
       if (!route.path.startsWith('/dashboard/')) {
         router.push('/dashboard/view');
       }
@@ -289,24 +300,33 @@ export default {
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 0; /* 移除水平内边距 */
+  padding: 0; /* 完全移除内边距 */
 }
 
 .plan-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  width: 100%; /* 确保列表宽度占满 */
+}
+
+/* 直接针对ul标签 */
+.plan-list > ul {
+  list-style: none;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100%;
 }
 
 .plan-item {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
+  padding: 12px 20px 12px 16px; /* 调整左内边距，为active状态的border-left留出空间 */
   border-radius: 0;
   margin: 0;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s;
+  transition: all 0.25s ease-out;
 }
 
 .plan-item:hover {
@@ -315,6 +335,8 @@ export default {
 
 .plan-item.active {
   background: rgba(255, 255, 255, 0.2);
+  border-left: 4px solid white;
+  padding-left: 12px; /* 当有左边框时减少左内边距以保持内容对齐 */
 }
 
 .plan-icon {
@@ -404,12 +426,16 @@ export default {
 .plan-list-enter-from, 
 .plan-list-leave-to {
   opacity: 0;
-  transform: translateX(-20px);
+  transform: translateX(-30px);
 }
 
 .plan-list-enter-active, 
 .plan-list-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.plan-list-move {
+  transition: transform 0.4s;
 }
 
 .loading-container {
@@ -449,5 +475,15 @@ export default {
     transform: translateX(0);
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
   }
+}
+
+.click-effect {
+  animation: click-pulse 0.3s;
+}
+
+@keyframes click-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.98); }
+  100% { transform: scale(1); }
 }
 </style> 

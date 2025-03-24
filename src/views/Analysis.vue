@@ -116,6 +116,7 @@ export default {
     
     // 监听当前方案变化
     watch(currentPlan, () => {
+      console.log("当前方案已更改，刷新分析数据");
       fetchAnalysisData();
     });
     
@@ -123,6 +124,23 @@ export default {
     const fetchAnalysisData = async () => {
       loading.value = true;
       try {
+        // 如果有当前方案，获取该方案的详细分析数据
+        if (currentPlan.value) {
+          const detailResponse = await store.dispatch('fetchPlanDetail', currentPlan.value.keyid);
+          if (detailResponse) {
+            // 更新方案特定的分析数据
+            platformData.value = detailResponse.platformDistribution || [];
+            
+            // 可能的情感数据映射
+            if (detailResponse.sentimentRatio) {
+              emotionData.positive = detailResponse.sentimentRatio.positive * 100 || 0;
+              emotionData.negative = detailResponse.sentimentRatio.negative * 100 || 0;
+              emotionData.neutral = detailResponse.sentimentRatio.normal * 100 || 0;
+            }
+          }
+        }
+        
+        // 获取全局分析数据
         const response = await store.dispatch('getAnalysisData');
         if (response && response.data) {
           const data = response.data;
@@ -130,11 +148,15 @@ export default {
           // 更新概览数据
           Object.assign(overviewData, data.overviewData);
           
-          // 更新平台数据
-          platformData.value = data.platformData;
+          // 只有在没有方案特定数据时才使用全局平台数据
+          if (!currentPlan.value || platformData.value.length === 0) {
+            platformData.value = data.platformData;
+          }
           
-          // 更新情感数据
-          Object.assign(emotionData, data.emotionData);
+          // 只有在没有方案特定数据时才使用全局情感数据
+          if (!currentPlan.value) {
+            Object.assign(emotionData, data.emotionData);
+          }
           
           // 更新趋势和关键词
           if (overviewData.positiveTrend > Math.abs(overviewData.negativeTrend)) {

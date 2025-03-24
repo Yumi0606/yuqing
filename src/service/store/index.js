@@ -88,14 +88,27 @@ export default createStore({
             }
         },
         
-        async setCurrentPlan({ commit }, id) {
+        async setCurrentPlan({ commit, state }, id) {
             commit('setLoading', true);
             try {
                 const response = await api.setCurrentPlan(id);
                 if (response.data && response.data.code === 200) {
-                    // 更新本地方案列表中的当前方案标记
-                    commit('setKeywordPlans', response.data.data);
-                    commit('setCurrentKeywordPlan', response.data.data);
+                    // 获取计划列表的副本
+                    const updatedPlans = [...state.keywordPlans];
+                    
+                    // 更新所有方案的isCurrent状态
+                    updatedPlans.forEach(plan => {
+                        plan.isCurrent = plan.keyid === parseInt(id);
+                    });
+                    
+                    // 更新方案列表
+                    commit('setKeywordPlans', updatedPlans);
+                    
+                    // 设置当前方案（从当前列表中找到它）
+                    const currentPlan = updatedPlans.find(plan => plan.keyid === parseInt(id));
+                    if (currentPlan) {
+                        commit('setCurrentKeywordPlan', currentPlan);
+                    }
                 }
             } catch (error) {
                 commit('addNotification', { 
