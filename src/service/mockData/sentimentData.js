@@ -1,5 +1,5 @@
 import Mock from 'mockjs';
-import { planInfos } from './planInfo';
+import { keywordPlans } from './keywordPlans';
 
 /**
  * 为每个方案生成舆情数据
@@ -20,7 +20,7 @@ import { planInfos } from './planInfo';
  *   - content: 内容摘要
  *   - url: 原文链接
  */
-export const sentimentData = planInfos.map(plan => {
+export const sentimentData = keywordPlans.map(plan => {
   const dataCount = plan.dataCount || Mock.Random.integer(800, 5000);
   
   // 生成文章列表

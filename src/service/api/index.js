@@ -8,10 +8,8 @@
  */
 import request from "./myAxios"
 import Mock from 'mockjs'
-import { getAllKeywordPlans, getKeywordPlanById, setCurrentPlan, togglePlanStatus } from '../mockData/keywordPlans'
-import { getAllPlanDetails, getPlanDetailById } from '../mockData/planDetails'
-import { getAnalysisData } from '../mockData/analysisData'
-import { getAllPlanInfo, getPlanInfoById, updatePlanInfo } from '../mockData/planInfo'
+import { getAllKeywordPlans, getKeywordPlanById, setCurrentPlan, togglePlanStatus, updatePlanInfo } from '../mockData/keywordPlans'
+import { getAnalysisData, getAllPlanAnalysisData, getPlanAnalysisDataById } from '../mockData/analysisData'
 import { getSentimentDataByPlanId, getFilteredSentimentData } from '../mockData/sentimentData'
 
 // 注册Mock接口
@@ -28,17 +26,12 @@ Mock.mock(/api\/keywordPlans\/toggle\/\d+/, 'put', (options) => {
   const id = parseInt(options.url.match(/\d+$/)[0])
   return togglePlanStatus(id)
 })
-Mock.mock(/api\/planDetails\/all/, 'get', getAllPlanDetails)
+Mock.mock(/api\/planDetails\/all/, 'get', getAllPlanAnalysisData)
 Mock.mock(/api\/planDetails\/\d+/, 'get', (options) => {
   const id = parseInt(options.url.match(/\d+$/)[0])
-  return getPlanDetailById(id)
+  return getPlanAnalysisDataById(id)
 })
 Mock.mock(/api\/analysis\/data/, 'get', getAnalysisData)
-Mock.mock(/api\/planInfo\/all/, 'get', getAllPlanInfo)
-Mock.mock(/api\/planInfo\/\d+/, 'get', (options) => {
-  const id = parseInt(options.url.match(/\d+$/)[0])
-  return getPlanInfoById(id)
-})
 Mock.mock(/api\/planInfo\/update\/\d+/, 'put', (options) => {
   const id = parseInt(options.url.match(/\d+$/)[0])
   const data = JSON.parse(options.body)
@@ -172,7 +165,7 @@ export default{
      */
     getAllPlanInfo() {
         return request({
-            url: "/planInfo/all",
+            url: "/keywordPlans/all",
             method: "get"
         })
     },
@@ -184,22 +177,8 @@ export default{
      */
     getPlanInfoById(id) {
         return request({
-            url: `/planInfo/${id}`,
+            url: `/keywordPlans/${id}`,
             method: "get"
-        })
-    },
-    
-    /**
-     * 更新方案信息
-     * @param {number} id 方案ID
-     * @param {Object} data 更新数据
-     * @returns {Promise} 返回更新结果的Promise
-     */
-    updatePlanInfo(id, data) {
-        return request({
-            url: `/planInfo/update/${id}`,
-            method: "put",
-            data: data
         })
     },
     

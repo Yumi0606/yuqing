@@ -100,4 +100,28 @@ export function togglePlanStatus(id) {
       message: '未找到该方案'
     };
   }
+}
+
+/**
+ * 更新方案信息
+ * @param {number} id 方案ID
+ * @param {Object} data 更新的数据
+ * @returns {Object} 更新后的方案信息
+ */
+export function updatePlanInfo(id, data) {
+  const index = keywordPlans.findIndex(item => item.keyid === parseInt(id));
+  if (index !== -1) {
+    keywordPlans[index] = { ...keywordPlans[index], ...data };
+    return {
+      code: 200,
+      data: keywordPlans[index],
+      message: '更新成功'
+    };
+  } else {
+    return {
+      code: 404,
+      data: null,
+      message: '未找到该方案'
+    };
+  }
 } 
