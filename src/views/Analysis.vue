@@ -56,7 +56,8 @@
 </template>
 
 <script>
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import DataOverview from '@/components/charts/DataOverview.vue';
 import PlatformChart from '@/components/charts/PlatformChart.vue';
 import EmotionChart from '@/components/charts/EmotionChart.vue';
@@ -71,42 +72,36 @@ export default {
     TrendChart
   },
   setup() {
+    const store = useStore();
+    const loading = ref(false);
+    
     const overviewData = reactive({
-      total: 12580,
-      positive: 5210,
-      negative: 3420,
-      neutral: 3950,
-      totalTrend: 12.5,
-      positiveTrend: 15.2,
-      negativeTrend: -5.8,
-      neutralTrend: 8.3
+      total: 0,
+      positive: 0,
+      negative: 0,
+      neutral: 0,
+      totalTrend: 0,
+      positiveTrend: 0,
+      negativeTrend: 0,
+      neutralTrend: 0
     });
     
-    const platformData = [
-      { name: '微博', value: 35 },
-      { name: '微信', value: 28 },
-      { name: '新闻网站', value: 16 },
-      { name: '论坛', value: 12 },
-      { name: '抖音', value: 9 }
-    ];
-    
-    const emotionData = {
-      positive: 42,
-      negative: 27,
-      neutral: 23,
-      unknown: 8
-    };
+    const platformData = ref([]);
+    const emotionData = reactive({
+      positive: 0,
+      negative: 0,
+      neutral: 0,
+      unknown: 0
+    });
     
     const currentDate = computed(() => {
       const date = new Date();
       return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
     });
     
-    const sentimentTrend = '稳定正面';
-    
-    const focusPoints = ['公共服务', '政策解读', '民生关切'];
-    
-    const topKeywords = ['政策执行', '民生保障', '公共服务', '教育改革', '医疗资源'];
+    const sentimentTrend = ref('加载中...');
+    const focusPoints = ref([]);
+    const topKeywords = ref([]);
     
     const tagColors = [
       { bg: 'rgba(58, 134, 255, 0.1)', text: '#3a86ff' },
@@ -116,6 +111,47 @@ export default {
       { bg: 'rgba(131, 56, 236, 0.1)', text: '#8338ec' }
     ];
     
+    // 获取分析数据
+    const fetchAnalysisData = async () => {
+      loading.value = true;
+      try {
+        const response = await store.dispatch('getAnalysisData');
+        if (response && response.data) {
+          const data = response.data;
+          
+          // 更新概览数据
+          Object.assign(overviewData, data.overviewData);
+          
+          // 更新平台数据
+          platformData.value = data.platformData;
+          
+          // 更新情感数据
+          Object.assign(emotionData, data.emotionData);
+          
+          // 更新趋势和关键词
+          if (overviewData.positiveTrend > Math.abs(overviewData.negativeTrend)) {
+            sentimentTrend.value = '稳定正面';
+          } else if (overviewData.positiveTrend < Math.abs(overviewData.negativeTrend)) {
+            sentimentTrend.value = '偏向负面';
+          } else {
+            sentimentTrend.value = '情感平衡';
+          }
+          
+          // 生成关键词
+          focusPoints.value = ['公共服务', '政策解读', '民生关切'];
+          topKeywords.value = ['政策执行', '民生保障', '公共服务', '教育改革', '医疗资源'];
+        }
+      } catch (error) {
+        console.error('获取分析数据失败:', error);
+      } finally {
+        loading.value = false;
+      }
+    };
+    
+    onMounted(() => {
+      fetchAnalysisData();
+    });
+    
     return {
       overviewData,
       platformData,
@@ -124,7 +160,8 @@ export default {
       sentimentTrend,
       focusPoints,
       topKeywords,
-      tagColors
+      tagColors,
+      loading
     };
   }
 };

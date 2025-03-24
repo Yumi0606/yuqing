@@ -133,11 +133,16 @@
 </template>
 
 <script>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useStore } from 'vuex';
 
 export default {
   name: 'View',
   setup() {
+    const store = useStore();
+    const loading = ref(false);
+    const dataList = ref([]);
+    
     const filters = reactive({
       sentiment: '',
       platform: '',
@@ -156,9 +161,9 @@ export default {
     
     const currentPage = ref(1);
     const itemsPerPage = 10;
-    const totalItems = 105;
+    const totalItems = ref(0);
     
-    const totalPages = computed(() => Math.ceil(totalItems / itemsPerPage));
+    const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
     
     const pages = computed(() => {
       const pageArray = [];
@@ -172,42 +177,62 @@ export default {
       return pageArray;
     });
     
-    const statistics = [
-      { label: '总数据量', value: 2345, type: 'total', icon: 'fas fa-database' },
-      { label: '今日新增', value: 145, type: 'new', icon: 'fas fa-plus-circle' },
-      { label: '积极信息', value: 986, type: 'positive', icon: 'fas fa-smile' },
-      { label: '消极信息', value: 674, type: 'negative', icon: 'fas fa-frown' }
-    ];
+    const statistics = ref([
+      { label: '总数据量', value: 0, type: 'total', icon: 'fas fa-database' },
+      { label: '今日新增', value: 0, type: 'new', icon: 'fas fa-plus-circle' },
+      { label: '积极信息', value: 0, type: 'positive', icon: 'fas fa-smile' },
+      { label: '消极信息', value: 0, type: 'negative', icon: 'fas fa-frown' }
+    ]);
     
-    // 模拟数据列表
-    const generateMockData = () => {
-      const data = [];
-      const sources = ['微博', '微信', '新闻网站', '论坛', '抖音'];
-      const sentiments = ['positive', 'negative', 'neutral'];
-      
-      for (let i = 1; i <= 105; i++) {
-        const heat = Math.floor(Math.random() * 90) + 10;
-        data.push({
-          id: 10000 + i,
-          title: `舆情数据标题示例，这是第${i}条数据，用于展示列表效果`,
-          source: sources[Math.floor(Math.random() * sources.length)],
-          sentiment: sentiments[Math.floor(Math.random() * sentiments.length)],
-          publishTime: `2023-${Math.ceil(Math.random() * 12)}-${Math.ceil(Math.random() * 28)}`,
-          heat: heat,
-          content: '这是详细内容，点击查看详情可以看到完整信息。包含更多的文字内容、图片和相关数据分析。'
-        });
+    // 从API获取数据
+    const fetchData = async () => {
+      loading.value = true;
+      try {
+        // 使用当前选中的方案ID
+        const currentPlan = store.state.currentKeywordPlan;
+        if (!currentPlan) return;
+        
+        // 获取方案详情
+        const response = await store.dispatch('fetchPlanDetail', currentPlan.keyid);
+        if (response) {
+          // 更新统计数据
+          statistics.value[0].value = response.overview.infos;
+          statistics.value[2].value = response.overview.positive;
+          statistics.value[3].value = response.overview.negative;
+          
+          // 设置热门文章列表
+          dataList.value = response.hotArticles.map((article, index) => ({
+            id: 10000 + index,
+            title: article.title,
+            source: article.source,
+            sentiment: getSentimentMapping(article.sentiment),
+            publishTime: article.publishTime,
+            heat: article.heat,
+            content: article.title,
+            url: article.url
+          }));
+          
+          totalItems.value = dataList.value.length;
+        }
+      } catch (error) {
+        console.error('获取数据失败:', error);
+      } finally {
+        loading.value = false;
       }
-      
-      return data;
     };
     
-    const allData = generateMockData();
+    // 情感类型映射
+    const getSentimentMapping = (sentiment) => {
+      const map = {
+        '积极': 'positive',
+        '消极': 'negative',
+        '中性': 'neutral'
+      };
+      return map[sentiment] || 'neutral';
+    };
     
-    const dataList = computed(() => {
-      // 应用过滤器和分页
-      const start = (currentPage.value - 1) * itemsPerPage;
-      const end = start + itemsPerPage;
-      return allData.slice(start, end);
+    onMounted(() => {
+      fetchData();
     });
     
     const getSentimentLabel = (sentiment) => {
@@ -227,17 +252,20 @@ export default {
     
     const viewDetail = (item) => {
       console.log('查看详情', item);
-      // 实际应用中这里应该跳转到详情页或打开详情模态框
+      // 在新标签页打开URL
+      if (item.url) {
+        window.open(item.url, '_blank');
+      }
     };
     
     const analyzeItem = (item) => {
       console.log('分析数据', item);
-      // 实际应用中这里应该跳转到分析页或打开分析模态框
+      // 跳转到分析页
+      store.commit('setCurrentArticle', item);
     };
     
     const refreshData = () => {
-      console.log('刷新数据');
-      // 实际应用中这里应该重新请求后端数据
+      fetchData();
     };
     
     return {
@@ -249,6 +277,7 @@ export default {
       currentPage,
       totalPages,
       pages,
+      loading,
       getSentimentLabel,
       getHeatColor,
       viewDetail,

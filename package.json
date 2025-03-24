@@ -15,7 +15,7 @@
     "chart.js": "^4.4.8",
     "core-js": "^3.8.3",
     "echarts": "^5.6.0",
-    "element-plus": "^2.5.6",
+    "element-plus": "^2.9.7",
     "eslint-plugin-vue": "^10.0.0",
     "gsap": "^3.12.7",
     "less": "^4.2.0",

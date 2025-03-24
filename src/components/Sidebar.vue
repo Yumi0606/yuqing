@@ -28,7 +28,11 @@
     </div>
 
     <div class="sidebar-content">
-      <div class="plan-list" v-if="filteredPlans.length">
+      <div v-if="loading" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>加载中...</p>
+      </div>
+      <div class="plan-list" v-else-if="filteredPlans.length">
         <transition-group name="plan-list" tag="ul">
           <li v-for="plan in filteredPlans" :key="plan.keyid" class="plan-item">
             <div class="plan-icon">
@@ -38,11 +42,11 @@
             <div class="plan-actions">
               <div 
                 class="plan-status" 
-                :class="{ 'active': plan.active }" 
+                :class="{ 'active': plan.isEnabled }" 
                 @click="togglePlanStatus(plan)"
-                :title="plan.active ? '已启用' : '已禁用'"
+                :title="plan.isEnabled ? '已启用' : '已禁用'"
               >
-                <i class="fas" :class="plan.active ? 'fa-check-circle' : 'fa-times-circle'"></i>
+                <i class="fas" :class="plan.isEnabled ? 'fa-check-circle' : 'fa-times-circle'"></i>
               </div>
               <button class="btn-edit" @click="editPlan(plan)" title="编辑方案">
                 <i class="fas fa-edit"></i>
@@ -73,6 +77,7 @@ export default {
     const store = useStore();
     const router = useRouter();
     const searchKeyword = ref('');
+    const loading = computed(() => store.state.loading);
 
     const sidebarCollapsed = computed(() => store.state.sidebarCollapsed);
     const allKeywordPlans = computed(() => store.state.keywordPlans);
@@ -103,10 +108,7 @@ export default {
     };
 
     const togglePlanStatus = (plan) => {
-      store.commit('updateKeywordPlan', { 
-        id: plan.keyid, 
-        data: { active: !plan.active } 
-      });
+      store.dispatch('togglePlanStatus', plan.keyid);
     };
 
     const editPlan = (plan) => {
@@ -124,6 +126,7 @@ export default {
       sidebarCollapsed,
       searchKeyword,
       filteredPlans,
+      loading,
       searchPlans,
       clearSearch,
       createNewPlan,
@@ -413,5 +416,28 @@ export default {
     transform: translateX(0);
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
   }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style> 
