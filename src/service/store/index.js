@@ -212,6 +212,110 @@ export default createStore({
          */
         setCurrentArticle({ commit }, article) {
             commit('setCurrentArticle', article);
+        },
+
+        /**
+         * 获取所有方案信息
+         * @param {Object} context Vuex context
+         */
+        async fetchAllPlanInfo({ commit }) {
+            commit('setLoading', true);
+            try {
+                const response = await api.getAllPlanInfo();
+                if (response.data && response.data.code === 200) {
+                    // 存储方案信息
+                    return response.data.data;
+                }
+                return [];
+            } catch (error) {
+                commit('addNotification', { 
+                    type: 'error', 
+                    title: '加载失败', 
+                    message: '无法加载方案信息' 
+                });
+                console.error(error);
+                return [];
+            } finally {
+                commit('setLoading', false);
+            }
+        },
+        
+        /**
+         * 获取单个方案信息
+         * @param {Object} context Vuex context
+         * @param {number} id 方案ID
+         */
+        async fetchPlanInfo({ commit }, id) {
+            commit('setLoading', true);
+            try {
+                const response = await api.getPlanInfoById(id);
+                if (response.data && response.data.code === 200) {
+                    return response.data.data;
+                }
+                return null;
+            } catch (error) {
+                commit('addNotification', { 
+                    type: 'error', 
+                    title: '加载失败', 
+                    message: '无法加载方案信息' 
+                });
+                console.error(error);
+                return null;
+            } finally {
+                commit('setLoading', false);
+            }
+        },
+        
+        /**
+         * 获取方案舆情数据
+         * @param {Object} context Vuex context
+         * @param {number} id 方案ID
+         */
+        async fetchSentimentData({ commit }, id) {
+            commit('setLoading', true);
+            try {
+                const response = await api.getSentimentDataByPlanId(id);
+                if (response.data && response.data.code === 200) {
+                    return response.data.data;
+                }
+                return null;
+            } catch (error) {
+                commit('addNotification', { 
+                    type: 'error', 
+                    title: '加载失败', 
+                    message: '无法加载舆情数据' 
+                });
+                console.error(error);
+                return null;
+            } finally {
+                commit('setLoading', false);
+            }
+        },
+        
+        /**
+         * 获取过滤后的舆情数据
+         * @param {Object} context Vuex context
+         * @param {Object} params 包含id和filters的参数对象
+         */
+        async filterSentimentData({ commit }, { id, filters }) {
+            commit('setLoading', true);
+            try {
+                const response = await api.getFilteredSentimentData(id, filters);
+                if (response.data && response.data.code === 200) {
+                    return response.data.data;
+                }
+                return null;
+            } catch (error) {
+                commit('addNotification', { 
+                    type: 'error', 
+                    title: '加载失败', 
+                    message: '无法加载过滤数据' 
+                });
+                console.error(error);
+                return null;
+            } finally {
+                commit('setLoading', false);
+            }
         }
     },
     getters: {
