@@ -1,5 +1,58 @@
 <template>
   <div class="analysis-page">
+    <div class="action-bar">
+      <button 
+        class="btn btn-primary"
+        @click="showCollectDialog"
+      >
+        <i class="fas fa-cloud-download-alt"></i>
+        立即搜集
+      </button>
+      
+      <button 
+        class="btn btn-secondary"
+        @click="refreshData"
+      >
+        <i class="fas fa-sync"></i>
+        刷新数据
+      </button>
+      
+      <div v-if="collectStatus" class="status-indicator">
+        <span :class="statusClass">{{ collectStatus }}</span>
+        <i v-if="isCollecting" class="fas fa-spinner fa-spin"></i>
+      </div>
+    </div>
+
+    <div v-if="showDialog" class="collect-dialog">
+      <div class="dialog-content">
+        <h3>设置收集参数</h3>
+        <div class="form-group">
+          <label>数据量（条）</label>
+          <div class="quick-amount-buttons">
+            <button 
+              v-for="amount in [500, 1000, 2000]" 
+              :key="amount"
+              class="btn-quick-amount"
+              @click="collectParams.amount = amount"
+            >
+              {{ amount }}
+            </button>
+          </div>
+          <input 
+            v-model.number="collectParams.amount" 
+            type="number" 
+            min="100" 
+            max="10000"
+            class="form-control"
+          >
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" @click="showDialog = false">取消</button>
+          <button class="btn btn-primary" @click="startCollection">开始收集</button>
+        </div>
+      </div>
+    </div>
+
     <h1 class="page-title">舆情分析</h1>
 
     <div class="section">
@@ -167,6 +220,43 @@ export default {
     };
     provide("getAnalysisData", getAnalysisData);
 
+    const showDialog = ref(false);
+    const isCollecting = ref(false);
+    const collectStatus = ref('');
+    const collectParams = reactive({
+      amount: 1000
+    });
+
+    const statusClass = computed(() => ({
+      'text-success': collectStatus.value === '完成',
+      'text-warning': collectStatus.value === '进行中',
+      'text-danger': collectStatus.value === '异常'
+    }));
+
+    const showCollectDialog = () => {
+      showDialog.value = true;
+    };
+
+    const startCollection = async () => {
+      showDialog.value = false;
+      isCollecting.value = true;
+      collectStatus.value = '进行中';
+      
+      try {
+        await api.startCollection(collectParams);
+        collectStatus.value = '完成';
+      } catch (error) {
+        collectStatus.value = '异常';
+      } finally {
+        isCollecting.value = false;
+        setTimeout(() => collectStatus.value = '', 5000);
+      }
+    };
+
+    const refreshData = () => {
+      getAnalysisData();
+    };
+
     return {
       overviewData,
       platformData,
@@ -178,6 +268,14 @@ export default {
       tagColors,
       loading,
       trendData,
+      showDialog,
+      isCollecting,
+      collectStatus,
+      collectParams,
+      statusClass,
+      showCollectDialog,
+      startCollection,
+      refreshData,
     };
   },
 };
@@ -314,5 +412,71 @@ export default {
   .grid-layout {
     grid-template-columns: 1fr;
   }
+}
+
+.action-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.collect-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 400px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.quick-amount-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.btn-quick-amount {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-quick-amount:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
 }
 </style> 

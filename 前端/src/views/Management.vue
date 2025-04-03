@@ -161,19 +161,58 @@
           
           <div class="form-group">
             <label>状态</label>
-            <div class="toggle-container">
-              <label class="toggle">
-                <input type="checkbox" v-model="formData.is_collecting">
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">{{ formData.is_collecting ? '启用' : '停用' }}</span>
-              </label>
+            <div class="form-check form-switch">
+              <input 
+                type="checkbox" 
+                v-model="formData.is_collecting"
+                class="form-check-input" 
+                role="switch"
+                :true-value="true"
+                :false-value="false"
+              >
+              <span class="form-check-label">
+                {{ formData.is_collecting ? '启用中' : '已停用' }}
+              </span>
             </div>
+          </div>
+          
+          <div class="form-group">
+            <label>立即开始收集</label>
+            <div class="form-check form-switch">
+              <input 
+                type="checkbox" 
+                v-model="formData.immediate_collect"
+                class="form-check-input" 
+                role="switch"
+                :true-value="true"
+                :false-value="false"
+              >
+              <span class="form-check-label">
+                {{ formData.immediate_collect ? '开启' : '关闭' }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="form-group" v-if="formData.immediate_collect">
+            <label>收集频率（小时）</label>
+            <input
+              v-model="formData.collection_frequency"
+              type="number"
+              class="form-input"
+              min="1"
+              max="24"
+              placeholder="请输入1-24之间的数字"
+            >
           </div>
         </div>
         
         <div class="plan-form-footer">
           <button class="btn-cancel" @click="cancelForm">取消</button>
-          <button class="btn-save" @click="savePlan" :disabled="!isFormValid || submitting">
+          <button 
+            class="btn-save" 
+            @click="savePlan" 
+            :disabled="!isFormValid || submitting"
+          >
             {{ submitting ? '保存中...' : '保存' }}
           </button>
         </div>
@@ -213,6 +252,8 @@ export default {
       group_name: "",
       keywords: [],
       is_collecting: true,
+      immediate_collect: false,
+      collection_frequency: 4,
     });
     
     // 表单验证
@@ -228,6 +269,8 @@ export default {
           group_name: newPlan.group_name,
           keywords: Array.isArray(newPlan.keywords) ? [...newPlan.keywords] : [],
           is_collecting: newPlan.is_collecting,
+          immediate_collect: newPlan.immediate_collect,
+          collection_frequency: newPlan.collection_frequency,
         };
       } else {
         resetForm();
@@ -280,7 +323,9 @@ export default {
       formData.value = {
         group_name: "",
         keywords: [],
-        is_collecting: true
+        is_collecting: true,
+        immediate_collect: false,
+        collection_frequency: 4
       };
       newKeyword.value = '';
     };
@@ -305,7 +350,9 @@ export default {
       formData.value = {
         group_name: plan.group_name,
         keywords: plan.keywords,
-        is_collecting: !plan.is_collecting
+        is_collecting: !plan.is_collecting,
+        immediate_collect: plan.immediate_collect,
+        collection_frequency: plan.collection_frequency,
       };
       editform();
     };
@@ -660,6 +707,7 @@ export default {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  overflow: hidden;
 }
 
 .plan-form-container {
@@ -667,8 +715,9 @@ export default {
   border-radius: 12px;
   width: 500px;
   max-width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
@@ -678,6 +727,7 @@ export default {
   align-items: center;
   padding: 20px;
   border-bottom: 1px solid #eee;
+  flex-shrink: 0;
 }
 
 .plan-form-header h3 {
@@ -697,6 +747,8 @@ export default {
 
 .plan-form-body {
   padding: 20px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .form-group {
@@ -717,12 +769,22 @@ export default {
   font-size: 14px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  transition: border 0.2s;
+  transition: all 0.2s;
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--primary-color);
+}
+
+.form-input::-webkit-inner-spin-button,
+.form-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.form-input[type=number] {
+  -moz-appearance: textfield;
 }
 
 .keywords-input-container {
@@ -767,87 +829,94 @@ export default {
   outline: none;
 }
 
-.toggle-container {
+.form-check {
   display: flex;
   align-items: center;
+  gap: 8px;
+  min-height: 24px;
 }
 
-.toggle {
-  display: flex;
-  align-items: center;
+.form-check-input {
+  width: 40px;
+  height: 20px;
+  margin-top: 0;
+  background-color: rgba(0, 0, 0, 0.25);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+  background-position: left center;
+  border-radius: 20px;
+  transition: background-position .15s ease-in-out;
   cursor: pointer;
 }
 
-.toggle input {
-  display: none;
+.form-check-input:checked {
+  background-color: var(--primary-color);
+  background-position: right center;
 }
 
-.toggle-slider {
-  position: relative;
-  width: 44px;
-  height: 24px;
-  background: #ccc;
-  border-radius: 12px;
-  transition: background 0.2s;
-  margin-right: 10px;
-}
-
-.toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 20px;
-  width: 20px;
-  left: 2px;
-  bottom: 2px;
-  background: white;
-  border-radius: 50%;
-  transition: transform 0.2s;
-}
-
-.toggle input:checked + .toggle-slider {
-  background: var(--primary-color);
-}
-
-.toggle input:checked + .toggle-slider:before {
-  transform: translateX(20px);
-}
-
-.toggle-label {
+.form-check-label {
   font-size: 14px;
-  color: #555;
+  color: #666;
+  user-select: none;
+}
+
+.toggle-container,
+.toggle,
+.toggle-slider,
+.toggle-label {
+  display: none;
 }
 
 .plan-form-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 15px 20px;
+  gap: 12px;
+  padding: 20px;
   border-top: 1px solid #eee;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+  flex-shrink: 0;
 }
 
 .btn-cancel {
-  background: #f5f5f5;
-  border: none;
+  min-width: 80px;
+  height: 36px;
+  background: white;
+  border: 1px solid #ddd;
   color: #666;
-  padding: 8px 15px;
-  border-radius: 6px;
+  padding: 0 20px;
+  border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
 }
 
 .btn-save {
+  min-width: 80px;
+  height: 36px;
   background: var(--primary-color);
   border: none;
   color: white;
-  padding: 8px 15px;
-  border-radius: 6px;
+  padding: 0 20px;
+  border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #2a78ff;
+  transform: translateY(-1px);
 }
 
 .btn-save:disabled {
   background: #ccc;
   cursor: not-allowed;
+  transform: none;
 }
 
 @media (max-width: 991px) {

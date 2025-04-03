@@ -260,5 +260,14 @@ export default {
             data
         })
     },
+
+    // 添加新的API方法
+    startCollection(data) {
+        return request({
+            url: '/collection/start',
+            method: 'post',
+            data
+        });
+    },
 }
 

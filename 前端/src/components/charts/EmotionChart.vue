@@ -109,7 +109,11 @@ export default {
               formatter: '{d}%',
               fontSize: 14,
               fontWeight: 'bold',
-              color: '#fff'
+              color: '#fff',
+              textShadowBlur: 5,
+              textShadowColor: 'rgba(0, 0, 0, 0.5)',
+              textShadowOffsetX: 1,
+              textShadowOffsetY: 1
             },
             emphasis: {
               itemStyle: {

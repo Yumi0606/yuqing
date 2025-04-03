@@ -11,6 +11,8 @@ import Mock from 'mockjs';
  * - dataCount: 方案数据总量
  * - alertCount: 预警次数
  * - keywords: 关键词列表
+ * - immediate_collect: 是否立即收集
+ * - collection_frequency: 收集频率（小时）
  */
 export const keywordPlans = Mock.mock({
   'list|5-10': [{
@@ -24,7 +26,9 @@ export const keywordPlans = Mock.mock({
     'createDate': '@date("yyyy-MM-dd")',
     'dataCount|1000-10000': 1000,
     'alertCount|0-20': 0,
-    'keywords|3-6': ['@cword(2,4)']
+    'keywords|3-6': ['@cword(2,4)'],
+    'immediate_collect|1': [true, false],
+    'collection_frequency|1-24': 4
   }]
 }).list;
 
