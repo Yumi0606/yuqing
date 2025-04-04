@@ -16,6 +16,7 @@ import threading
 from bilibili_api import search_bilibili_videos, get_video_comments
 from data_handler import save_comments_to_excel, create_videos_folder
 import random
+from emotion_recognition import add_emotion
 
 app = FastAPI()
 
@@ -111,6 +112,9 @@ def crawl_data(group_name, keywords, collection_count):
     total_comments_collected = 0
     warning_count = 0  # 记录预警次数
     
+    # API密钥 - 用于情感分析
+    api_key = "roOebLVfNNu2PDWp8sI57ZAT"  # 这里应该从配置文件或环境变量获取
+    
     # 如果有多个关键词，平均分配要爬取的评论数量
     if len(keywords) > 0:
         comments_per_keyword = collection_count // len(keywords)
@@ -163,7 +167,7 @@ def crawl_data(group_name, keywords, collection_count):
                     break
                 
                 # 如果尝试了太多视频还是无法达到目标，也停止
-                if video_idx >= 50:  # 限制每个关键词最多尝试5个视频
+                if video_idx >= 50:  # 限制每个关键词最多尝试50个视频
                     print(f"关键词 '{keyword}' 已尝试了50个视频，但未达到目标评论量")
                     break
                 
@@ -216,11 +220,28 @@ def crawl_data(group_name, keywords, collection_count):
                     if len(comments) > comments_needed:
                         comments = comments[:comments_needed]
                     
-                    
-                    
                     # 保存评论数据
                     try:
-                        save_comments_to_excel(comments, video, output_dir, group_name, keyword)
+                        # 保存原始评论数据到spide_data文件夹
+                        spide_data_dir = f"./res_file/spide_data/{group_name}"
+                        if not os.path.exists(spide_data_dir):
+                            os.makedirs(spide_data_dir)
+                            
+                        # 保存评论数据
+                        excel_file_path = save_comments_to_excel(comments, video, output_dir, group_name, keyword)
+                        
+                        # 调用情绪识别处理保存的文件
+                        print(f"开始进行情绪识别: {excel_file_path}")
+                        # 保存原始数据
+                        save_comments_to_excel(comments, video, spide_data_dir, group_name, keyword)
+                        spide_excel_path = os.path.join(spide_data_dir, os.path.basename(excel_file_path))
+                        
+                        # 进行情绪分析
+                        try:
+                            add_emotion(spide_excel_path, api_key)
+                            print(f"情绪识别完成: {excel_file_path}")
+                        except Exception as e:
+                            print(f"情绪识别失败: {e}")
                         
                         # 更新已收集的评论数量
                         keyword_collected += len(comments)

@@ -5,3 +5,6 @@ fastapi~=0.115.12
 pydantic~=2.11.1
 requests~=2.32.3
 XlsxWriter~=3.2.2
+apscheduler~=3.10.4
+baidu-aip~=4.16.13
+pandas~=2.2.0
