@@ -28,7 +28,8 @@ export const keywordPlans = Mock.mock({
     'alertCount|0-20': 0,
     'keywords|3-6': ['@cword(2,4)'],
     'immediate_collect|1': [true, false],
-    'collection_frequency|1-24': 4
+    'collection_frequency|1-24': 4,
+    'collection_count|100-1000': 100
   }]
 }).list;
 
