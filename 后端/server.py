@@ -649,12 +649,12 @@ async def sentiment_analysis(group_name: str = None):
     emotion_res = collections.defaultdict(int)
     date_res = collections.defaultdict(int)
     
-    print(f"开始分析舆情数据，文件数量: {len(file_list)}")
+    # print(f"开始加载舆情数据，文件数量: {len(file_list)}")
     
     # 处理所有文件
     for file in file_list:
         try:
-            print(f"读取文件: {file}")
+            # print(f"读取文件: {file}")
             # 使用简化的 read_xlex 函数读取文件
             items, _ = read_xlex(file)
             for item in items:

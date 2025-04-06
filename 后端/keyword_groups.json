@@ -29,9 +29,9 @@
         ],
         "is_collecting": true,
         "created_at": "2025-03-29 13:43:14",
-        "data_count": 3000,
+        "data_count": 4000,
         "warning_count": 0,
-        "last_collected_at": "2025-04-06 11:12:01",
+        "last_collected_at": "2025-04-06 14:20:02",
         "emotion_stats": {
             "positive": 0,
             "negative": 0,

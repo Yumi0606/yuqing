@@ -7,7 +7,12 @@ import re
 import requests
 import hashlib
 
-
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Referer": "https://www.bilibili.com/",
+    "Origin": "https://www.bilibili.com",
+    "Cookie": "Cookie:buvid3=D4E92FD9-687C-A3AE-99B2-3141F559D64368029infoc; b_nut=1727599168; _uuid=31026AE78-88CC-2886-4CC6-8EFCD2795E9B68387infoc; enable_web_push=DISABLE; buvid4=BF2FF1DB-F153-7953-E8EA-F13205AE5F9268937-024092908-kGraga3wKv8RvNDiRPebUQ%3D%3D; rpdid=|(JJmYY|muuu0J'u~k~lmmu~R; header_theme_version=CLOSE; DedeUserID=1961954258; DedeUserID__ckMd5=574b68c6d0abdf66; CURRENT_QUALITY=80; fingerprint=77359313eb2f7eda225579542c5e4cb2; buvid_fp_plain=undefined; enable_feed_channel=DISABLE; buvid_fp=24b3a0fb39c79721bbd77f60d67b8dd3; CURRENT_FNVAL=2000; LIVE_BUVID=AUTO5817395209894496; PVID=1; bili_ticket=eyJhbGciOiJIUzI1NiIsImtpZCI6InMwMyIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDA0NTk3NjEsImlhdCI6MTc0MDIwMDUwMSwicGx0IjotMX0.PMrfEguYpQOiXiQBM5OzB3PGl4TcEojt575dvReRXV0; bili_ticket_expires=1740459701; SESSDATA=a3f5cea0%2C1755752562%2C9452c%2A22CjDXiSYjpAs7q8DDSyeKmKzuL5Wpdb3Jt_opQ9I7C4EAr9PwWsqcfnLErDYttUqiit8SVnRmTk5sYnN0Qm1aYlJkZ2tLMmczOGRFNzBtMWxPZWFrM0R3aHNIc3BtU3FfbkM3VE9faWFUd1hMTFZ0NkxFUlR6WGJDWXowWWRyZWxwZXNkZ0lPYXRnIIEC; bili_jct=e9a835f0073f4dac2d4a325d99d74aaa; b_lsid=FF3FBE6C_1952CF9B199; bsource=search_bing; bp_t_offset_1961954258=1036710349685915648; home_feed_column=4; browser_resolution=400-747"
+}
 def md5_encode(text):
     md5 = hashlib.md5()
     text_bytes = text.encode('utf-8')
@@ -146,7 +151,7 @@ def get_video_comments(headers, aid, bvid, max_pages=3):
                     "wts": wts
                 }
                 
-                print(f"请求视频 {bvid} 的第 {page} 页评论...")
+                # print(f"请求视频 {bvid} 的第 {page} 页评论...")
                 
                 response = requests.get(
                     'https://api.bilibili.com/x/v2/reply/wbi/main?',
@@ -169,7 +174,7 @@ def get_video_comments(headers, aid, bvid, max_pages=3):
                     break
                 
                 replies = response_json.get('data', {}).get('replies', [])
-                print(f"成功获取 {len(replies)} 条评论")
+                # print(f"成功获取 {len(replies)} 条评论")
                 
                 if not replies:
                     print(f"第 {page} 页没有评论，结束获取")
@@ -189,7 +194,8 @@ def get_video_comments(headers, aid, bvid, max_pages=3):
                             "user_ip_location": reply.get("reply_control", {}).get("location", "未知"),  # 用户 IP 属地
                             "content": reply["content"]["message"],  # 评论内容
                             "likes": reply["like"],  # 评论点赞数
-                            "time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(reply["ctime"]))  # 评论时间
+                            "time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(reply["ctime"])),  # 评论时间
+                            "platform":"BiliBili"
                         })
                     except KeyError as e:
                         print(f"处理评论时遇到键错误: {e}, 跳过此评论")
