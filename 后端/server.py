@@ -83,7 +83,7 @@ class DeleteKeywordGroup(BaseModel):
 class FilterSentimentData(BaseModel):
     group_name: str = None
     emotion_type: str = "全部"
-    platform: str = "全部"
+    platform: str = ""
     start_time: str = None
     end_time: str = None
 
@@ -106,40 +106,107 @@ sentiment_results = {}
 sentiment_lock = threading.Lock()
 
 def sentiment_worker():
-    """后台情感分析工作线程，处理队列中的情感分析任务"""
-    print("情感分析工作线程已启动，等待任务...")
+    """后台处理情感分析的工作线程"""
+    print("情感分析工作线程已启动")
     while True:
         try:
-            print("等待情感分析队列中的新任务...")
             # 从队列获取任务
-            task_id, file_path= sentiment_queue.get()
-            print(f"收到情感分析任务 {task_id}: {file_path}，开始处理")
+            task = sentiment_queue.get(block=True)
             
-            # 使用锁保护情感分析过程
-            with sentiment_lock:
-                try:
-                    result = add_emotion(file_path, analyze_only=False)
-                    sentiment_results[task_id] = {
-                        "status": "completed",
-                        "result": result
-                    }
-                    print(f"情感分析任务 {task_id} 成功完成")
-                except Exception as e:
-                    print(f"情感分析任务 {task_id} 失败: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    sentiment_results[task_id] = {
-                        "status": "failed",
-                        "error": str(e)
-                    }
+            # 解析任务参数
+            task_id = task.get("task_id", "unknown")
+            file_path = task.get("file_path", "")
             
-            # 标记任务完成
-            sentiment_queue.task_done()
+            print(f"收到情感分析任务 {task_id}，开始处理文件: {os.path.basename(file_path)}")
+            
+            # 更新任务状态为进行中
+            if task_id in sentiment_results:
+                sentiment_results[task_id]["status"] = "processing"
+                sentiment_results[task_id]["start_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # 执行情感分析
+            try:
+                if not file_path or not os.path.exists(file_path):
+                    raise FileNotFoundError(f"文件不存在: {file_path}")
+                
+                # 调用情感分析函数
+                result_stats = add_emotion(file_path)
+                
+                # 检查是否遇到API错误
+                if result_stats.get("api_error", False):
+                    error_msg = result_stats.get("api_error_msg", "未知API错误")
+                    print(f"⚠️ 检测到严重API错误: {error_msg}")
+                    print("由于API权限错误，停止所有情感分析任务并清空队列")
+                    
+                    # 更新任务状态
+                    if task_id in sentiment_results:
+                        sentiment_results[task_id]["status"] = "error"
+                        sentiment_results[task_id]["error"] = [error_msg]
+                    
+                    # 清空队列
+                    while not sentiment_queue.empty():
+                        try:
+                            canceled_task = sentiment_queue.get_nowait()
+                            canceled_id = canceled_task.get("task_id", "unknown")
+                            if canceled_id in sentiment_results:
+                                sentiment_results[canceled_id]["status"] = "canceled"
+                                sentiment_results[canceled_id]["error"] = ["由于API错误，任务被取消"]
+                            sentiment_queue.task_done()
+                        except:
+                            break
+                    
+                    print("情感分析队列已清空")
+                    # 标记当前任务完成并继续等待
+                    sentiment_queue.task_done()
+                    continue
+                
+                # 更新任务状态为完成
+                if task_id in sentiment_results:
+                    if result_stats.get("success"):
+                        sentiment_results[task_id]["status"] = "completed"
+                        sentiment_results[task_id]["result"] = {
+                            "positive_count": result_stats.get("positive_count", 0),
+                            "negative_count": result_stats.get("negative_count", 0),
+                            "neutral_count": result_stats.get("neutral_count", 0),
+                            "total_processed": result_stats.get("processed_comments", 0)
+                        }
+                        print(f"情感分析任务 {task_id} 成功完成")
+                    else:
+                        # 如果分析失败，记录错误信息
+                        sentiment_results[task_id]["status"] = "error"
+                        sentiment_results[task_id]["error"] = result_stats.get("errors", ["未知错误"])
+                        print(f"情感分析任务 {task_id} 失败: {result_stats.get('errors')}")
+                
+            except Exception as e:
+                # 记录错误信息
+                error_msg = f"情感分析失败: {str(e)}"
+                print(error_msg)
+                if task_id in sentiment_results:
+                    sentiment_results[task_id]["status"] = "error"
+                    sentiment_results[task_id]["error"] = [error_msg]
+                
+                # 检查是否是API错误，如果是则清空队列避免继续失败
+                if any(term in str(e).lower() for term in ["api", "permission", "quota", "access denied", "error_code"]):
+                    print("检测到可能的API错误，清空情感分析队列")
+                    while not sentiment_queue.empty():
+                        try:
+                            sentiment_queue.get_nowait()
+                            sentiment_queue.task_done()
+                        except:
+                            break
+            
             print(f"情感分析任务 {task_id} 处理完成")
+            sentiment_queue.task_done()
+            
         except Exception as e:
             print(f"情感分析工作线程出错: {str(e)}")
             import traceback
             traceback.print_exc()
+            
+        finally:
+            # 即使出错，也要让线程继续运行
+            print("等待情感分析队列中的新任务...")
+            time.sleep(1)  # 小幅度休眠，避免CPU占用过高
 
 # 添加爬取线程管理器
 def crawl_worker():
@@ -213,8 +280,8 @@ def crawl_data(group_name, keywords, collection_count):
     """
     print(f"开始爬取 {group_name} 的数据，关键词: {keywords}, 目标评论量: {collection_count}")
     
-    # 确保每个视频最多爬取的评论数量不超过1000
-    max_comments_per_video = 1000
+    # 确保每个视频最多爬取的评论数量不超过100
+    max_comments_per_video = 100
     
     # 获取当前时间作为记录
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -647,19 +714,28 @@ async def sentiment_analysis(group_name: str = None):
     emotion_res = collections.defaultdict(int)
     date_res = collections.defaultdict(int)
     
-    # print(f"开始加载舆情数据，文件数量: {len(file_list)}")
+    # 跟踪未知情感的文件
+    files_with_unknown_emotions = set()
+    total_unknown_count = 0
     
     # 处理所有文件
     for file in file_list:
         try:
-            # print(f"读取文件: {file}")
-            # 使用简化的 read_xlex 函数读取文件
             items, _ = read_xlex(file)
+            unknown_count_in_file = 0
+            
             for item in items:
                 # 使用get方法安全地获取platform值，如果缺失则使用默认值
-                platform = item.get('platform', '未知平台')
+                platform = item.get('platform', '未知')
                 platform_res[platform] += 1
-                emotion_res[item.get('emotion', '未知')] += 1
+                
+                # 记录情感信息
+                emotion = item.get('emotion', '未知')
+                emotion_res[emotion] += 1
+                
+                # 检查是否有未知情感
+                if emotion == '未知':
+                    unknown_count_in_file += 1
                 
                 # 处理日期数据
                 if 'time' in item and item['time']:
@@ -669,10 +745,68 @@ async def sentiment_analysis(group_name: str = None):
                     except (AttributeError, IndexError):
                         # 如果time不是字符串或格式不对，跳过
                         pass
+            
+            # 如果文件中有未知情感的条目，记录该文件
+            if unknown_count_in_file > 0:
+                files_with_unknown_emotions.add(file)
+                total_unknown_count += unknown_count_in_file
+                
         except Exception as e:
             print(f"处理文件 {file} 时出错: {str(e)}")
             import traceback
             traceback.print_exc()
+    
+    # 添加未知情感的文件到情感分析队列
+    if files_with_unknown_emotions and total_unknown_count > 0:
+        print(f"发现{len(files_with_unknown_emotions)}个文件中有{total_unknown_count}条未知情感评论，加入后台分析队列")
+        
+        # 尝试先清理队列中的错误状态
+        try:
+            # 检查队列状态，如果有错误则清空
+            with sentiment_lock:
+                error_count = 0
+                for task_id in list(sentiment_results.keys()):
+                    if sentiment_results[task_id].get("status") == "error":
+                        error_count += 1
+                        del sentiment_results[task_id]
+                
+                if error_count > 0:
+                    print(f"清理了{error_count}个错误的情感分析任务")
+                    # 可能需要清空队列
+                    while not sentiment_queue.empty():
+                        try:
+                            sentiment_queue.get_nowait()
+                        except:
+                            break
+            
+            # 加入新的分析任务
+            for file_path in files_with_unknown_emotions:
+                task_id = f"sentiment_task_{int(time.time())}_{random.randint(1000, 9999)}"
+                sentiment_results[task_id] = {
+                    "status": "pending",
+                    "file_path": file_path,
+                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "group_name": group_name
+                }
+                
+                # 将任务加入队列
+                sentiment_queue.put({
+                    "task_id": task_id,
+                    "file_path": file_path
+                  
+                })
+                
+                print(f"已将文件 {os.path.basename(file_path)} 加入情感分析队列，任务ID: {task_id}")
+                
+        except Exception as e:
+            print(f"添加情感分析任务时出错: {str(e)}")
+            # 如果出现API错误，清空队列
+            try:
+                while not sentiment_queue.empty():
+                    sentiment_queue.get_nowait()
+                print("检测到严重错误，已清空情感分析队列")
+            except:
+                pass
     
     # 统计结果处理
     total = sum(platform_res.values())
@@ -717,13 +851,17 @@ async def sentiment_analysis(group_name: str = None):
             continue
     
     print(f"舆情分析完成")
-    print(emotion_res_count)
+    if total_unknown_count > 0:
+        print(f"注意: 还有{total_unknown_count}条评论的情感是未知的，正在后台处理中")
+    
     return {
         'platform_res': platform_res_list, 
         'emotion_res': emotion_res_list, 
         'date_res': date_res_list, 
         'code': 200, 
-        'emotion_res_count': emotion_res_count
+        'emotion_res_count': emotion_res_count,
+        'unknown_emotion_count': total_unknown_count,
+        'processing_files': len(files_with_unknown_emotions) if files_with_unknown_emotions else 0
     }
 
 

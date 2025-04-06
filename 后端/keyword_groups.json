@@ -4,12 +4,21 @@
         "keywords": [
             "python",
             "java",
-            "c++"
+            "c++",
+            "js"
         ],
-        "is_collecting": true,
+        "is_collecting": false,
         "created_at": "2025-03-27 21:29:22",
-        "data_count": 0,
-        "warning_count": 0
+        "data_count": 600,
+        "warning_count": 7,
+        "last_collected_at": "2025-04-06 18:02:53",
+        "emotion_stats": {
+            "positive": 340,
+            "negative": 222,
+            "neutral": 38
+        },
+        "immediate_collect": false,
+        "collection_frequency": 6
     },
     {
         "group_name": "\u6e38\u620f",
@@ -23,19 +32,79 @@
         "warning_count": 0
     },
     {
-        "group_name": "test",
+        "group_name": "speed",
         "keywords": [
-            "\u539f\u795e"
+            "speed"
         ],
         "is_collecting": true,
-        "created_at": "2025-03-29 13:43:14",
-        "data_count": 7000,
-        "warning_count": 0,
-        "last_collected_at": "2025-04-06 15:46:21",
+        "created_at": "2025-04-06 16:56:50",
+        "data_count": 710,
+        "warning_count": 8,
+        "immediate_collect": false,
+        "collection_frequency": 4,
+        "collection_count": 100,
+        "last_collected_at": "2025-04-06 18:01:01",
         "emotion_stats": {
-            "positive": 0,
-            "negative": 0,
-            "neutral": 0
+            "positive": 402,
+            "negative": 286,
+            "neutral": 17
+        }
+    },
+    {
+        "group_name": "\u6697\u9ed1\u5fc3\u7406\u5b66",
+        "keywords": [
+            "\u6697\u9ed1\u5fc3\u7406\u5b66"
+        ],
+        "is_collecting": true,
+        "created_at": "2025-04-06 16:56:50",
+        "data_count": 600,
+        "warning_count": 2,
+        "immediate_collect": false,
+        "collection_frequency": 4,
+        "collection_count": 100,
+        "last_collected_at": "2025-04-06 17:14:49",
+        "emotion_stats": {
+            "positive": 100,
+            "negative": 88,
+            "neutral": 6
+        }
+    },
+    {
+        "group_name": "\u5c0f\u7c73\u6c7d\u8f66",
+        "keywords": [
+            "\u5c0f\u7c73\u6c7d\u8f66"
+        ],
+        "is_collecting": true,
+        "created_at": "2025-04-06 16:56:50",
+        "data_count": 100,
+        "warning_count": 1,
+        "immediate_collect": false,
+        "collection_frequency": 4,
+        "collection_count": 100,
+        "last_collected_at": "2025-04-06 17:02:11",
+        "emotion_stats": {
+            "positive": 16,
+            "negative": 79,
+            "neutral": 1
+        }
+    },
+    {
+        "group_name": "\u534e\u5e08",
+        "keywords": [
+            "\u534e\u5357\u5e08\u8303\u5927\u5b66"
+        ],
+        "is_collecting": true,
+        "created_at": "2025-04-06 18:01:01",
+        "data_count": 600,
+        "warning_count": 4,
+        "immediate_collect": false,
+        "collection_frequency": 4,
+        "collection_count": 100,
+        "last_collected_at": "2025-04-06 18:08:23",
+        "emotion_stats": {
+            "positive": 297,
+            "negative": 188,
+            "neutral": 15
         }
     }
 ]

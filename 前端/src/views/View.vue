@@ -262,20 +262,20 @@ export default {
       loading.value = true;
 
       try {
-        console.log("发送请求参数:", {
-          group_name: currentPlan.value.group_name,
-          ...filters,
-        });
+        // console.log("发送请求参数:", {
+        //   group_name: currentPlan.value.group_name,
+        //   ...filters,
+        // });
         
         const response = await api.sentimentView({
           group_name: currentPlan.value.group_name,
           ...filters,
         });
         
-        console.log("API返回的完整响应:", response);
+        // console.log("API返回的完整响应:", response);
         
         if (response) {
-          console.log("响应数据:", response.data);
+          // console.log("响应数据:", response.data);
           
           // 更新统计信息
           statistics.value[0].value = response.data.total_data_count || 0;
@@ -287,7 +287,7 @@ export default {
           console.log("过滤后的数据:", response.data.filtered_data);
           
           if (Array.isArray(response.data.filtered_data) && response.data.filtered_data.length > 0) {
-            console.log("数据示例:", response.data.filtered_data[0]);
+            // console.log("数据示例:", response.data.filtered_data[0]);
             
             // 数据映射：将后端数据格式转换为前端表格所需的格式
             const mappedData = response.data.filtered_data.map(item => {
@@ -303,7 +303,7 @@ export default {
                 original: item
               };
               
-              console.log("映射后的数据项:", result);
+              // console.log("映射后的数据项:", result);
               return result;
             });
             

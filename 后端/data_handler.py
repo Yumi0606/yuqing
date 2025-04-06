@@ -68,6 +68,7 @@ def save_comments_to_excel(comments, video, output_dir, keyid, keyword):
         worksheet.write(row, 7, comment["content"])
         worksheet.write(row, 8, comment["likes"])
         worksheet.write(row, 9, comment["time"])
+        worksheet.write(row, 10, comment["platform"])
     # 关闭工作簿
     workbook.close()
     return excel_file_path

@@ -195,7 +195,7 @@ def get_video_comments(headers, aid, bvid, max_pages=3):
                             "content": reply["content"]["message"],  # 评论内容
                             "likes": reply["like"],  # 评论点赞数
                             "time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(reply["ctime"])),  # 评论时间
-                            "platform":"BiliBili"
+                            "platform":"bilibili"
                         })
                     except KeyError as e:
                         print(f"处理评论时遇到键错误: {e}, 跳过此评论")
