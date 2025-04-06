@@ -33,6 +33,7 @@
               v-for="amount in [500, 1000, 2000]" 
               :key="amount"
               class="btn-quick-amount"
+              :class="{ active: collectParams.amount === amount }"
               @click="collectParams.amount = amount"
             >
               {{ amount }}
@@ -185,37 +186,52 @@ export default {
     const trendData = ref({});
 
     const getAnalysisData = async () => {
+      // 先检查 currentPlan 是否存在
+      if (!currentPlan.value) {
+        console.warn('没有选择当前方案，无法获取分析数据');
+        return;
+      }
+      
       emotionData.positive = 0;
       emotionData.negative = 0;
       emotionData.neutral = 0;
 
-      overviewData.total=0;
-      overviewData.positive=0;
-      overviewData.negative=0;
-      overviewData.neutral=0;
+      overviewData.total = 0;
+      overviewData.positive = 0;
+      overviewData.negative = 0;
+      overviewData.neutral = 0;
       
-      const response = await api.sentimentAnalysis({
-        group_name: currentPlan.value.group_name,
-      });
+      try {
+        const response = await api.sentimentAnalysis({
+          group_name: currentPlan.value.group_name,
+        });
 
-      if (response && response.data) {
-        const data = response.data;
-        platformData.value = data.platform_res;
-        if (data.emotion_res.length > 0) {
-          emotionData.positive = data.emotion_res[0].value;
-          emotionData.negative = data.emotion_res[1].value;
-          emotionData.neutral = data.emotion_res[2].value;
+        if (response && response.data) {
+          const data = response.data;
+          platformData.value = data.platform_res || [];
+          
+          // 安全地处理情绪数据
+          if (data.emotion_res && data.emotion_res.length > 0) {
+            emotionData.positive = data.emotion_res[0]?.value || 0;
+            emotionData.negative = data.emotion_res[1]?.value || 0;
+            emotionData.neutral = data.emotion_res[2]?.value || 0;
+          }
+          
+          trendData.value = data.date_res || {};
+          
+          // 安全地处理情绪计数数据
+          if (data.emotion_res_count && data.emotion_res_count.length > 0) {
+            overviewData.total =
+              (data.emotion_res_count[0]?.value || 0) +
+              (data.emotion_res_count[1]?.value || 0) +
+              (data.emotion_res_count[2]?.value || 0);
+            overviewData.positive = data.emotion_res_count[0]?.value || 0;
+            overviewData.negative = data.emotion_res_count[1]?.value || 0;
+            overviewData.neutral = data.emotion_res_count[2]?.value || 0;
+          }
         }
-        trendData.value = data.date_res;
-        if (data.emotion_res_count.length > 0) {
-          overviewData.total =
-            data.emotion_res_count[0]?.value +
-            data.emotion_res_count[1]?.value +
-            data.emotion_res_count[2]?.value;
-          overviewData.positive = data.emotion_res_count[0]?.value;
-          overviewData.negative = data.emotion_res_count[1]?.value;
-          overviewData.neutral = data.emotion_res_count[2]?.value;
-        }
+      } catch (error) {
+        console.error('获取分析数据失败:', error);
       }
     };
     provide("getAnalysisData", getAnalysisData);
@@ -239,13 +255,29 @@ export default {
 
     const startCollection = async () => {
       showDialog.value = false;
+      
+      // 检查当前方案是否存在
+      if (!currentPlan.value) {
+        collectStatus.value = '错误';
+        console.error('没有选择当前方案，无法开始收集');
+        setTimeout(() => collectStatus.value = '', 3000);
+        return;
+      }
+      
       isCollecting.value = true;
       collectStatus.value = '进行中';
       
       try {
-        await api.startCollection(collectParams);
+        await api.startCollection({
+          group_name: currentPlan.value.group_name,
+          amount: collectParams.amount
+        });
         collectStatus.value = '完成';
+        setTimeout(() => {
+          getAnalysisData();
+        }, 1000);
       } catch (error) {
+        console.error('数据收集失败:', error);
         collectStatus.value = '异常';
       } finally {
         isCollecting.value = false;
@@ -474,7 +506,8 @@ export default {
   transition: all 0.2s;
 }
 
-.btn-quick-amount:hover {
+.btn-quick-amount:hover,
+.btn-quick-amount.active {
   background: var(--primary-color);
   color: white;
   border-color: var(--primary-color);

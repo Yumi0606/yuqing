@@ -261,12 +261,15 @@ export default {
         })
     },
 
-    // 添加新的API方法
-    startCollection(data) {
+    // 修改立即搜集方法，正确使用后端API
+    startCollection(params) {
         return request({
-            url: '/collection/start',
+            url: '/trigger_collection/',
             method: 'post',
-            data
+            params: {
+                group_name: params.group_name,
+                collection_count: params.amount
+            }
         });
     },
 }
