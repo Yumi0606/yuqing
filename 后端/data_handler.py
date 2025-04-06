@@ -53,7 +53,7 @@ def save_comments_to_excel(comments, video, output_dir, keyid, keyword):
     workbook = xlsxwriter.Workbook(excel_file_path)
     worksheet = workbook.add_worksheet()
     # 写入表头
-    headers = ["bvid", "comment_id", "user_id", "user_name", "user_gender", "user_level", "user_ip_location", "content", "likes", "time"]
+    headers = ["bvid", "comment_id", "user_id", "user_name", "user_gender", "user_level", "user_ip_location", "content", "likes", "time","platform"]
     for col, header in enumerate(headers):
         worksheet.write(0, col, header)
     # 写入评论数据

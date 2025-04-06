@@ -112,13 +112,13 @@ def sentiment_worker():
         try:
             print("等待情感分析队列中的新任务...")
             # 从队列获取任务
-            task_id, file_path, api_key = sentiment_queue.get()
+            task_id, file_path= sentiment_queue.get()
             print(f"收到情感分析任务 {task_id}: {file_path}，开始处理")
             
             # 使用锁保护情感分析过程
             with sentiment_lock:
                 try:
-                    result = add_emotion(file_path, api_key, analyze_only=False)
+                    result = add_emotion(file_path, analyze_only=False)
                     sentiment_results[task_id] = {
                         "status": "completed",
                         "result": result
@@ -230,8 +230,6 @@ def crawl_data(group_name, keywords, collection_count):
         "emotion_errors": []
     }
     
-    # API密钥 - 用于情感分析
-    api_key = "hZuLZY3gotc0qscU4Rp5TFFcGlA0mN0z"  # 这里应该从配置文件或环境变量获取
     
     # 如果有多个关键词，平均分配要爬取的评论数量
     if len(keywords) > 0:
@@ -354,7 +352,7 @@ def crawl_data(group_name, keywords, collection_count):
                         
                         # 进行情绪分析
                         try:
-                            emotion_result = add_emotion(file_path, api_key)
+                            emotion_result = add_emotion(file_path)
                             if emotion_result["success"]:
                                 print(f"情绪识别完成: {emotion_result['file_path']}")
                                 print(f"情绪统计: 积极={emotion_result['positive_count']}, "
@@ -736,8 +734,12 @@ async def filter_sentiment_data(info: FilterSentimentData):
     platform = info.platform
     start_time = info.start_time
     end_time = info.end_time
-    print(info)
+    
+    print(f"筛选请求参数: 组={group_name}, 情感={emotion_type}, 平台={platform}, 开始时间={start_time}, 结束时间={end_time}")
+    
     file_list = load_exist_res_file(group_name)
+    print(f"找到{len(file_list)}个文件")
+    
     filtered_data = []
     total_data_count = 0
     positive_count = 0
@@ -745,56 +747,82 @@ async def filter_sentiment_data(info: FilterSentimentData):
     today = datetime.now().strftime("%Y-%m-%d")
     today_new_count = 0
 
-    for file in file_list:
-        items, _ = read_xlex(file)
-        for item in items:
-            # 确保所有必要字段都存在且有效
-            if "time" not in item or not item["time"]:
-                continue
+    # 平台名称映射表
+    platform_aliases = {
+        "bilibili": ["b站", "哔哩哔哩", "bilibili", "哔哩"],
+        "douyin": ["抖音", "tiktok", "douyin"],
+        "weibo": ["微博", "weibo"],
+        "wechat": ["微信", "wechat"]
+    }
+    
+    # 处理平台筛选
+    platform_matches = set()
+    if platform:  # 只有当platform不为空时才进行平台筛选
+        platform_lower = platform.lower()
+        for std_name, aliases in platform_aliases.items():
+            if platform_lower == std_name.lower() or platform_lower in [a.lower() for a in aliases]:
+                platform_matches.update([std_name.lower()] + [a.lower() for a in aliases])
+                break
+    
+    # 处理每个文件
+    for  file in file_list:
+        try:
+            items, count = read_xlex(file)
             
-            try:
-                item_time = datetime.strptime(item["time"].split()[0], "%Y-%m-%d")
-            except (ValueError, AttributeError, IndexError):
-                # 如果日期格式不正确，跳过这条记录
-                continue
-            
-            # 应用过滤条件
-            if start_time and item_time < datetime.strptime(start_time, "%Y-%m-%d"):
-                continue
-            if end_time and item_time > datetime.strptime(end_time, "%Y-%m-%d"):
-                continue
                 
-            # 获取平台，缺失时使用默认值
-            item_platform = item.get("platform", "未知平台")
-            if platform != "全部" and item_platform != platform:
-                continue
+            for item in items:
+                # 1. 时间筛选
+                if "time" not in item or not item["time"]:
+                    continue
                 
-            # 获取情感，缺失时使用默认值
-            item_emotion = item.get("emotion", "未知")
-            if emotion_type != "全部" and item_emotion != emotion_type:
-                continue
-
-            # 将符合条件的项添加到结果中
-            # 转换为前端期望的格式（列表格式）
-            # 确保所有键都有值，即使是空字符串
-            headers = ["platform", "emotion", "time", "username", "content"]
-            item_values = [item.get(key, "") for key in headers]
-            filtered_data.append(item_values)
-            
-            # 更新计数
-            total_data_count += 1
-            if item_emotion == "积极":
-                positive_count += 1
-            elif item_emotion == "消极":
-                negative_count += 1
+                try:
+                    item_date = item["time"].split()[0]
+                    item_time = datetime.strptime(item_date, "%Y-%m-%d")
+                    
+                    # 应用时间过滤
+                    if start_time and item_time < datetime.strptime(start_time, "%Y-%m-%d"):
+                        continue
+                    if end_time and item_time > datetime.strptime(end_time, "%Y-%m-%d"):
+                        continue
+                    
+                    # 记录今日数据
+                    if item_date == today:
+                        today_new_count += 1
+                except:
+                    continue
                 
-            # 检查是否是今天的数据
-            try:
-                if item["time"].split()[0] == today:
-                    today_new_count += 1
-            except (AttributeError, IndexError):
-                pass
-
+                # 2. 平台筛选
+                item_platform = item.get("platform", "未知").lower()
+                if platform and platform_matches:
+                    # 检查是否有匹配
+                    match_found = False
+                    for match in platform_matches:
+                        if match in item_platform or item_platform in match:
+                            match_found = True
+                            break
+                    if not match_found:
+                        continue
+                
+                # 3. 情感筛选
+                item_emotion = item.get("emotion", "未知")
+                if emotion_type!= "全部" and item_emotion != emotion_type:
+                    continue
+                
+                # 构建结果
+               
+                filtered_data.append(item)
+                
+                # 更新统计
+                total_data_count += 1
+                if item_emotion == "积极":
+                    positive_count += 1
+                elif item_emotion == "消极":
+                    negative_count += 1
+        except Exception as e:
+            print(f"处理文件 {file} 时出错: {str(e)}")
+    
+    print(f"筛选完成: 找到{total_data_count}条符合条件的数据")
+    
     return {
         "total_data_count": total_data_count,
         "today_new_count": today_new_count,

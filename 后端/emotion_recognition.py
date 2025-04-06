@@ -8,7 +8,7 @@ from datetime import datetime
 # 添加情绪分析处理锁
 emotion_lock = threading.Lock()
 
-def add_emotion(file_path, api_key, analyze_only=False, timeout=60):
+def add_emotion(file_path, analyze_only=False, timeout=60):
     """为评论数据添加情感分析结果，添加了超时保护和详细日志输出
     
     参数:
@@ -45,9 +45,9 @@ def add_emotion(file_path, api_key, analyze_only=False, timeout=60):
     
     try:
         # 初始化百度AI NLP客户端 - 提前创建以便在需要时立即使用
-        APP_ID = "6335828"
-        SECRET_KEY = "hZuLZY3gotc0qscU4Rp5TFFcGlA0mN0z"
-        client = AipNlp(APP_ID, api_key, SECRET_KEY)
+        APP_ID = "118369536"
+        SECRET_KEY = "D66H4GcJfikCMJPa3RZbRYhInwghytMM"
+        client = AipNlp(APP_ID,  SECRET_KEY)
         
         # 使用 openpyxl 读取文件
         wb = openpyxl.load_workbook(file_path)
@@ -89,7 +89,7 @@ def add_emotion(file_path, api_key, analyze_only=False, timeout=60):
             # 统计已有情感数据
             for row in range(2, ws.max_row + 1):
                 # 处理平台信息
-                platform = "B站"  # 默认平台
+                platform = "bilibili"  # 默认平台
                 if columns['platform']:
                     platform_val = ws.cell(row=row, column=columns['platform']).value
                     if platform_val:
@@ -137,7 +137,7 @@ def add_emotion(file_path, api_key, analyze_only=False, timeout=60):
                     content = ws.cell(row=row, column=columns['content']).value
                     
                     # 处理平台信息
-                    platform = "B站"  # 默认平台
+                    platform = "bilibili"  # 默认平台
                     if columns['platform']:
                         platform_val = ws.cell(row=row, column=columns['platform']).value
                         if platform_val:
@@ -279,7 +279,7 @@ def load_exist_res_file(group_name=None):
 
 def main():
     group_name = '游戏'
-    api_key = "hZuLZY3gotc0qscU4Rp5TFFcGlA0mN0z"
+    # api_key = "hZuLZY3gotc0qscU4Rp5TFFcGlA0mN0z"
     # 多层遍历文件夹内的文件
     root_path = f"./res_file/spide_data/{group_name}"
     for root, dirs, files in os.walk(root_path):
@@ -288,7 +288,7 @@ def main():
                 file_path = os.path.join(root, file)
                 if '_video_info' in file_path:
                     continue
-                add_emotion(file_path, api_key)
+                add_emotion(file_path)
 
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@
           class="select-filter"
           @change="changePlatform"
         >
-          <!-- <option value="">全部平台</option> -->
+          <option value="">全部平台</option>
           <option
             v-for="platform in platforms"
             :key="platform"
@@ -262,19 +262,70 @@ export default {
       loading.value = true;
 
       try {
+        console.log("发送请求参数:", {
+          group_name: currentPlan.value.group_name,
+          ...filters,
+        });
+        
         const response = await api.sentimentView({
           group_name: currentPlan.value.group_name,
           ...filters,
         });
+        
+        console.log("API返回的完整响应:", response);
+        
         if (response) {
-          statistics.value[0].value = response.data.total_data_count;
-          statistics.value[1].value = response.data.today_new_count;
-          statistics.value[2].value = response.data.positive_count;
-          statistics.value[3].value = response.data.negative_count;
-          dataList.value = response.data.filtered_data;
+          console.log("响应数据:", response.data);
+          
+          // 更新统计信息
+          statistics.value[0].value = response.data.total_data_count || 0;
+          statistics.value[1].value = response.data.today_new_count || 0;
+          statistics.value[2].value = response.data.positive_count || 0;
+          statistics.value[3].value = response.data.negative_count || 0;
+          
+          // 检查过滤后的数据
+          console.log("过滤后的数据:", response.data.filtered_data);
+          
+          if (Array.isArray(response.data.filtered_data) && response.data.filtered_data.length > 0) {
+            console.log("数据示例:", response.data.filtered_data[0]);
+            
+            // 数据映射：将后端数据格式转换为前端表格所需的格式
+            const mappedData = response.data.filtered_data.map(item => {
+              const result = {
+                id: item.comment_id?.toString() || '',
+                title: item.content || '',
+                platform: 'BiliBili',  // 根据bvid确定平台
+                emotion: item.emotion || 'neutral',
+                time: item.time || '',
+                hot: item.likes || 0,  // 热度使用点赞数
+                url: item.bvid ? `https://www.bilibili.com/video/${item.bvid}` : '#',
+                // 保存原始数据，方便调试
+                original: item
+              };
+              
+              console.log("映射后的数据项:", result);
+              return result;
+            });
+            
+            dataList.value = mappedData;
+            console.log("最终数据列表:", dataList.value);
+          } else {
+            console.warn("过滤后的数据为空或不是数组");
+            dataList.value = [];
+          }
+        } else {
+          console.warn("API响应为空");
         }
       } catch (error) {
         console.error("获取数据失败:", error);
+        dataList.value = [];
+      } finally {
+        loading.value = false;
+        console.log("当前数据列表状态:", {
+          length: dataList.value.length,
+          isEmpty: dataList.value.length === 0,
+          isArray: Array.isArray(dataList.value)
+        });
       }
     };
 
